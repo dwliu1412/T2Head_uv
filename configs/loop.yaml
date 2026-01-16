@@ -1,0 +1,50 @@
+paths:
+  flame_path: "ckpts/FLAME-2020"
+  train_data: "assets"
+  test_data: "assets/test"
+  img_path: "outputs/headstudio/20260115-014920/stage1"    # stage1
+  img_path_stage2: "outputs/headstudio/20260115-014920/stage2" #  # stage2
+  ply_path: "outputs/headstudio/20260115-014920/save/step_5000.ply"
+  config_path: "outputs/headstudio/20260115-014920/configs/parsed.yaml"
+  output_root: "outputs/headstudio/20260115-014920"
+
+
+train:
+  epochs: 50
+  train_bs: 2
+  test_bs: 1
+  save_every_n_epochs: 10
+  update_iter: 2000
+  fix_exp_step: 25000
+  render_use_zero_pose_after_stage2: false
+
+avatar:
+  densify_prune_start_step: 300 # 300
+  densify_prune_end_step: 2100 # 2100
+  densify_prune_interval: 300 # 300
+  prune_only_start_step: 2400 # 2400
+  prune_only_end_step: 3300 # 3300
+  prune_only_interval: 300 # 300
+  size_threshold_fix_step: 1500
+  prune_size_threshold: 0.002
+  size_threshold: 60
+  max_grad: 0.002 # 0.0002
+
+  render_height: 1024
+  render_width: 1024
+  fovy_deg: 70.0
+
+camera:
+  azimuth_start_deg: 60.0
+  azimuth_end_deg: 120.0
+  elevation_deg: 15.0
+  distance: 2.0
+  azimuth_fill_count: 180
+
+loss:
+  l1_weight: 1.0
+  ssim_weight: 0.2
+  mse_weight: 1.0
+  vgg_weight: 0.01
+
+device: cuda
