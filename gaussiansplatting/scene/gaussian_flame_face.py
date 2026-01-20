@@ -109,9 +109,14 @@ class GaussianFlameUVModel(GaussianModel):
         constrained_idx = np.union1d(face_vert_index, leye_vert_index)
         constrained_idx = np.union1d(constrained_idx, reye_vert_index)
         num_geometry_verts = self.model.v_template.shape[0]  # 通常为 5023
-        region_mask = torch.zeros(num_geometry_verts, dtype=torch.bool, device=self.device)
-        region_mask[torch.tensor(constrained_idx, device=self.device, dtype=torch.long)] = True
-        self.region_mask = region_mask
+        vert_mask = torch.zeros(num_geometry_verts, dtype=torch.bool, device=self.device)
+        vert_mask[torch.tensor(constrained_idx, device=self.device, dtype=torch.long)] = True
+        faces_tensor = torch.tensor(self.model.faces.astype(np.int64), dtype=torch.long, device=self.device)
+        v0_in = vert_mask[faces_tensor[:, 0]]
+        v1_in = vert_mask[faces_tensor[:, 1]]
+        v2_in = vert_mask[faces_tensor[:, 2]]
+        face_region_mask = v0_in & v1_in & v2_in
+        self.region_mask = face_region_mask
 
         self._build_uv_grid(res=256, maxK=32)
 
@@ -169,8 +174,29 @@ class GaussianFlameUVModel(GaussianModel):
         where p_surf and n are barycentrically interpolated on the UV triangle.
         """
         verts, vnormals = self._flame_verts_and_normals()
-        uvd = torch.cat([self.get_uv, self._d], dim=1)  # (N,3) with columns [u,v,d]
+        current_d = self._get_constrained_d()
+        uvd = torch.cat([self.get_uv, current_d], dim=1)  # (N,3) with columns [u,v,d]
         return self._map_uvd_to_xyz(uvd, verts, vnormals)
+
+    def _get_constrained_d(self):
+        """
+        返回应用了区域限制的 d。
+        对于 face_region_mask 内的高斯点，强制 d=0。
+        """
+        d = self._d
+        if hasattr(self, 'region_mask'):
+            #  获取每个高斯点当前所在的 face index
+            f_idx = self._face_idx.long()
+            num_faces = self.region_mask.shape[0]
+            f_idx = f_idx.clamp(0, num_faces - 1)
+
+            # 该 face 是否在受限区域
+            is_constrained = self.region_mask[f_idx]  # (N,) bool
+
+            # 强制置 0
+            d = torch.where(is_constrained.unsqueeze(-1), torch.zeros_like(d), d)
+
+        return d
 
     def _map_uvd_to_xyz(self, uvd, verts, vnormals, face_idx=None):
         """Core mapping F: (u,v,d) -> xyz for a fixed mesh (verts, vnormals).
@@ -195,14 +221,6 @@ class GaussianFlameUVModel(GaussianModel):
 
         gtri = faces[f]         # (N,3) geometry vertex ids
         ttri = self.ft[f]       # (N,3) texture vertex ids
-
-        is_constrained_v0 = self.region_mask[gtri[:, 0]]
-        is_constrained_v1 = self.region_mask[gtri[:, 1]]
-        is_constrained_v2 = self.region_mask[gtri[:, 2]]
-        is_constrained_tri = is_constrained_v0 & is_constrained_v1 & is_constrained_v2
-        constraint_factor = torch.ones_like(d)
-        constraint_factor[is_constrained_tri] = 0.0
-        d = d * constraint_factor
 
         p0 = verts[gtri[:, 0]]
         p1 = verts[gtri[:, 1]]
@@ -390,9 +408,8 @@ class GaussianFlameUVModel(GaussianModel):
         """
         with torch.enable_grad():
             create_graph = getattr(self, "jacobian_create_graph", False)
-
-            # Build (u,v,d) tensor. Keep graph if available (training); otherwise detach for eval.
-            uvd = torch.cat([self.get_uv, self._d], dim=1)
+            current_d = self._get_constrained_d()
+            uvd = torch.cat([self.get_uv, current_d], dim=1)
             if not uvd.requires_grad:
                 uvd = uvd.detach().requires_grad_(True)
 

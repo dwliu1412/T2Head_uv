@@ -19,7 +19,7 @@ from threestudio.utils.head_v2 import FlamePointswRandomExp
 from gaussiansplatting.gaussian_renderer import render
 from gaussiansplatting.arguments import PipelineParams
 from gaussiansplatting.scene.cameras import Camera
-from gaussiansplatting.scene.gaussian_flame_uv_tega import GaussianFlameUVModel
+from gaussiansplatting.scene.gaussian_flame_face import GaussianFlameUVModel
 
 device = torch.device('cuda')
 
@@ -284,7 +284,7 @@ if __name__ == '__main__':
     exp_path = 'assets/exp.npy'
     pose_path = 'assets/pose.npy'
 
-    ply_path = 'outputs/headstudio/20260109-070652/save/step_5000.ply'
+    ply_path = 'outputs/headstudio/20260119-071629/save/step_5000.ply'
     root_dir = os.path.dirname(os.path.dirname(os.path.normpath(ply_path)))
     save_path = os.path.join(root_dir, 'nersamble')
     os.makedirs(save_path, exist_ok=True)

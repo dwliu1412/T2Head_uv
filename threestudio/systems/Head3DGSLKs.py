@@ -238,6 +238,14 @@ class Head3DGSLKsRig(BaseLift3DSystem):
         if self.true_global_step > self.cfg.half_scheduler_max_step:
             self.guidance.set_min_max_steps(min_step_percent=0.02, max_step_percent=0.55)
 
+        # Linear Annealing
+        # max_step = self.trainer.max_steps
+        # current_step = self.true_global_step
+        # start_max_t = 0.8
+        # end_max_t = 0.50
+        # current_max_t = start_max_t - (start_max_t - end_max_t) * (current_step / max_step)
+        # self.guidance.set_min_max_steps(min_step_percent=0.02, max_step_percent=current_max_t)
+
         self.gaussian.update_learning_rate(self.true_global_step)
 
         bg = None

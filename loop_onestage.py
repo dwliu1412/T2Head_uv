@@ -563,13 +563,13 @@ class Trainer:
 
                 atlas_start = cfg['loss'].get('uv_atlas_start_step', 2400)
                 atlas_w = cfg['loss'].get('uv_atlas_weight', 1.0)  # 从小到大调（0.2~2.0 常见）
-                atlas_res = cfg['loss'].get('uv_atlas_res', 256)
+                atlas_res = cfg['loss'].get('uv_atlas_res', 1024)
                 atlas_alpha_th = cfg['loss'].get('uv_atlas_alpha_thresh', 0.2)
                 atlas_flip_v = cfg['loss'].get('uv_atlas_flip_v', False)  # 若出现上下颠倒再置 True
                 if self.global_step >= atlas_start and atlas_w > 0:
                     with torch.no_grad():
                         atlas_rgb, atlas_w_map = splat_rgb_to_uv_atlas(
-                            rgb=batch['img'],  # teacher = sdedit后的 pseudo 图
+                            rgb=batch['img'],  # sdedit后的 pseudo 图
                             uv_render=uv_renders,
                             atlas_res=atlas_res,
                             alpha_thresh=atlas_alpha_th,
